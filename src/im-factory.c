@@ -450,9 +450,48 @@ get_channel_for_incoming_message (
     return NULL;
 }
 
+/**
+ * gabble_im_factory_report_unacked:
+ *
+ * @brief reports failed delivery for each unacked stanza
+ *
+ * Pops unacked stanzas from the stream management queue and reports failed delivery.
+ */
+static void gabble_im_factory_report_unacked(GabbleImFactory *self)
+{
+  WockyStanza      *stanza = NULL;
+  WockyC2SPorter   *porter = WOCKY_C2S_PORTER (gabble_connection_dup_porter (self->priv->conn));
+
+  DEBUG ("Check for unacked stanzas");
+
+  while ((stanza = wocky_c2s_porter_pop_unacked_stanzas(porter)) != NULL)
+  {
+    const char* id = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza), "id");
+    const char* to = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza), "to");
+
+    if ((id != NULL) && (to != NULL))
+    {
+      GabbleIMChannel *channel = get_channel_for_incoming_message (self, to, FALSE);
+      if (channel != NULL)
+      {
+		/* Found channel and report permanently failed delivery */
+        _gabble_im_channel_report_delivery (channel,
+            TP_CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 0, id, NULL,
+            GABBLE_TEXT_CHANNEL_SEND_NO_ERROR, TP_DELIVERY_STATUS_PERMANENTLY_FAILED);
+      }
+      else
+        g_warning ("no existing channel with '%s'; ignoring", to);
+    }
+  }
+
+  g_object_unref (porter);
+}
+
 static void
 gabble_im_factory_close_all (GabbleImFactory *self)
 {
+  gabble_im_factory_report_unacked(self);
+
   /* Use a temporary variable (the macro does this) because we don't want
    * im_channel_closed_cb to remove the channel from the hash table a
    * second time */
