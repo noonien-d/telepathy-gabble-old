@@ -122,6 +122,9 @@
 #define NS_GOOGLE_MAIL_NOTIFY   "google:mail:notify"
 #define NS_GOOGLE_SETTING       "google:setting"
 
+//XEP-0363: HTTP File Upload
+#define NS_HTTPUPLOAD           "urn:xmpp:http:upload"
+
 #define NS_TEMPPRES "urn:xmpp:temppres:0"
 #define NS_GOOGLE_SHARED_STATUS "google:shared-status"
 
