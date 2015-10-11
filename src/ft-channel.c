@@ -1444,7 +1444,7 @@ offer_httpupload_file_transfer (GabbleFileTransferChannel *self,
     WOCKY_STANZA_SUB_TYPE_GET, wocky_porter_get_full_jid (porter), self->priv->httpupload_service->jid, NULL);
 
   WockyNode *nodetop = wocky_stanza_get_top_node (msg);
-  WockyNode *noderequest = wocky_node_add_child_ns (nodetop, "request", "eu:siacs:conversations:http:upload");
+  WockyNode *noderequest = wocky_node_add_child_ns (nodetop, "request", NS_HTTPUPLOAD);
 
   gchar* size_str = g_strdup_printf ("%" G_GUINT64_FORMAT, self->priv->size);
 
@@ -1530,8 +1530,7 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
 #endif
 
   self->priv->httpupload_service = gabble_disco_service_find (conn->disco,
-                            NULL, NULL,
-                            "eu:siacs:conversations:http:upload");
+                            NULL, NULL, NS_HTTPUPLOAD);
 
   presence = gabble_presence_cache_get (conn->presence_cache,
       tp_base_channel_get_target_handle (base));
