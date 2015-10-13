@@ -1329,21 +1329,14 @@ gabble_file_transfer_channel_gtalk_file_collection_state_changed (
     }
 }
 
-static void httpupload_send (GabbleFileTransferChannel *self)
+static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
+  GabbleFileTransferChannel *self = (GabbleFileTransferChannel*)user_data;
   guint status;
-  SoupMessage *msg;
-  SoupSession *session = soup_session_new_with_options (
-    SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
-    NULL);
-  msg = soup_message_new ("PUT", self->priv->http_upload_put);
-  soup_message_set_request (msg, "image/jpeg",
-            SOUP_MEMORY_COPY, self->priv->data_buffer, self->priv->size);
-  status = soup_session_send_message (session, msg);
-
-  DEBUG ("send_message returned %d", status);
 
   self->priv->httpupload = FALSE;
+
+  g_object_get (msg, "status-code", &status, NULL);
 
   if (status == 200)
   {
@@ -1395,6 +1388,19 @@ static void httpupload_send (GabbleFileTransferChannel *self)
         TP_FILE_TRANSFER_STATE_CANCELLED,
         TP_FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_ERROR);
   }
+}
+
+static void httpupload_send (GabbleFileTransferChannel *self)
+{
+  SoupMessage *msg;
+  SoupSession *session = soup_session_async_new_with_options (
+    SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
+    NULL);
+  msg = soup_message_new ("PUT", self->priv->http_upload_put);
+  soup_message_set_request (msg, "image/jpeg",
+            SOUP_MEMORY_COPY, self->priv->data_buffer, self->priv->size);
+
+  soup_session_queue_message (session, msg, httpupload_sent_cb, self);
 }
 
 static void httpupload_reply (GObject *source_object,
