@@ -38,6 +38,7 @@
 #endif
 #include "muc-factory.h"
 #include "types.h"
+#include "im-channel.h"
 
 #include <gabble/capabilities-set.h>
 #include <gabble/types.h>
@@ -308,6 +309,11 @@ void _gabble_connection_create_handle_repos (TpBaseConnection *conn,
 
 /* For unit tests only */
 void gabble_connection_set_disco_reply_timeout (guint timeout);
+
+GabbleIMChannel *gabble_connection_get_imchannel_by_jid (
+    GabbleConnection *conn,
+    const gchar *jid,
+    gboolean create_if_missing);
 
 G_END_DECLS
 

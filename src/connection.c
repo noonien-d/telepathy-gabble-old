@@ -4145,3 +4145,14 @@ gabble_connection_get_caps (GabblePluginConnection *plugin_connection,
 
   return (WockyXep0115Capabilities *) presence;
 }
+
+GabbleIMChannel *gabble_connection_get_imchannel_by_jid (
+    GabbleConnection *conn,
+    const gchar *jid,
+    gboolean create_if_missing)
+{
+  return gabble_im_factory_get_channel_for_incoming_message (
+    conn->priv->im_factory,
+    jid,
+    create_if_missing);
+}
