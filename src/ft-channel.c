@@ -1331,7 +1331,7 @@ gabble_file_transfer_channel_gtalk_file_collection_state_changed (
 
 static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-  GabbleFileTransferChannel *self = (GabbleFileTransferChannel*)user_data;
+  GabbleFileTransferChannel *self = (GabbleFileTransferChannel *) user_data;
   guint status;
 
   self->priv->httpupload = FALSE;
@@ -1339,100 +1339,109 @@ static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer
   g_object_get (msg, "status-code", &status, NULL);
 
   if (status == 200)
-  {
-    TpBaseChannel *base = TP_BASE_CHANNEL (self);
-    TpBaseConnection *base_conn = tp_base_channel_get_connection (base);
-    GabbleConnection *conn = GABBLE_CONNECTION (base_conn);
-    WockyPorter *porter = wocky_session_get_porter (conn->session);
-
-    WockyStanza *xmsg = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-      WOCKY_STANZA_SUB_TYPE_CHAT, wocky_porter_get_full_jid (porter), self->priv->httpupload_receipient, NULL);
-
-    WockyNode *nodetop = wocky_stanza_get_top_node (xmsg);
-
-    wocky_node_add_child_with_content (nodetop, "body", self->priv->http_upload_get);
-
-    DEBUG("send message to '%s'", self->priv->httpupload_receipient);
-
-    wocky_porter_send (porter, xmsg);
-
-    gabble_file_transfer_channel_set_state (
-            TP_SVC_CHANNEL_TYPE_FILE_TRANSFER (self),
-            TP_FILE_TRANSFER_STATE_COMPLETED,
-            TP_FILE_TRANSFER_STATE_CHANGE_REASON_NONE);
-
-    if (self->priv->transport && gibber_transport_buffer_is_empty (self->priv->transport))
-      gibber_transport_disconnect (self->priv->transport);
-
-/*
-    // now I get that ft and im are totaly seperated
-    if (1)
     {
-      GError *error = NULL;
-      TpMessage *tpmsg = tp_cm_message_new (base_conn, 2);
+      TpBaseChannel *base = TP_BASE_CHANNEL (self);
+      TpBaseConnection *base_conn = tp_base_channel_get_connection (base);
+      GabbleConnection *conn = GABBLE_CONNECTION (base_conn);
+      WockyPorter *porter = wocky_session_get_porter (conn->session);
+      GabbleIMChannel *imchannel;
 
-      // Body
-      tp_message_set_string (tpmsg, 1, "content-type", "text/plain");
-      tp_message_set_string (tpmsg, 1, "content", self->priv->http_upload_get);
+      WockyStanza *xmsg = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_CHAT, wocky_porter_get_full_jid (porter),
+          self->priv->httpupload_receipient, NULL);
 
-      tp_message_mixin_sent ((GObject *)chan, tpmsg, NULL, NULL, error);
+      WockyNode *nodetop = wocky_stanza_get_top_node (xmsg);
 
-    } */
-  }
+      gchar *id = gabble_generate_id ();
+      wocky_node_set_attribute (nodetop, "id", id);
+      wocky_node_add_child_with_content (nodetop, "body", self->priv->http_upload_get);
+
+      DEBUG("send message to '%s'", self->priv->httpupload_receipient);
+
+      _gabble_connection_send (conn, xmsg, NULL);
+
+      gabble_file_transfer_channel_set_state (
+          TP_SVC_CHANNEL_TYPE_FILE_TRANSFER (self),
+          TP_FILE_TRANSFER_STATE_COMPLETED,
+          TP_FILE_TRANSFER_STATE_CHANGE_REASON_NONE);
+
+      if (self->priv->transport && gibber_transport_buffer_is_empty (self->priv->transport))
+        gibber_transport_disconnect (self->priv->transport);
+
+      //Show up in the senders im history
+      //Totally breaks up the concept of separated text and ft channels
+      imchannel = gabble_connection_get_imchannel_by_jid (conn,
+          self->priv->httpupload_receipient, FALSE);
+
+      if (imchannel)
+        {
+          _gabble_im_channel_receive (imchannel,
+              xmsg,
+              TP_CHANNEL_TEXT_MESSAGE_TYPE_NORMAL,
+              self->priv->httpupload_receipient,
+              time (NULL),
+              NULL,
+              self->priv->http_upload_get,
+              -1);
+        }
+      g_free (id);
+    }
   else
-  {
-    DEBUG ("sending to transport failed: HTTP Error %d", status);
+    {
+      DEBUG ("sending to transport failed: HTTP Error %d", status);
 
-    gabble_file_transfer_channel_set_state (
-        TP_SVC_CHANNEL_TYPE_FILE_TRANSFER (self),
-        TP_FILE_TRANSFER_STATE_CANCELLED,
-        TP_FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_ERROR);
-  }
+      gabble_file_transfer_channel_set_state (
+          TP_SVC_CHANNEL_TYPE_FILE_TRANSFER (self),
+          TP_FILE_TRANSFER_STATE_CANCELLED,
+          TP_FILE_TRANSFER_STATE_CHANGE_REASON_REMOTE_ERROR);
+    }
+
+  g_free (self->priv->http_upload_get);
+  g_free (self->priv->http_upload_put);
 }
 
 static void httpupload_send (GabbleFileTransferChannel *self)
 {
-  SoupMessage *msg;
   SoupSession *session = soup_session_async_new_with_options (
-    SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
-    NULL);
-  msg = soup_message_new ("PUT", self->priv->http_upload_put);
-  soup_message_set_request (msg, "image/jpeg",
-            SOUP_MEMORY_COPY, self->priv->data_buffer, self->priv->size);
+      SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER, NULL);
+  SoupMessage *msg = soup_message_new ("PUT", self->priv->http_upload_put);
 
-  soup_session_queue_message (session, msg, httpupload_sent_cb, self);
+  if (msg)
+    {
+      soup_message_set_request (msg, "application/octet-stream",
+          SOUP_MEMORY_COPY, self->priv->data_buffer, self->priv->size);
+
+      soup_session_queue_message (session, msg, httpupload_sent_cb, self);
+    }
+  else
+    DEBUG ("soupmessage failed: put = %s", self->priv->http_upload_put);
 }
 
-static void httpupload_reply (GObject *source_object,
-                        GAsyncResult *result,
-                        gpointer user_data)
+static void httpupload_reply (GabbleConnection *conn,
+                WockyStanza *sent_msg,
+                WockyStanza *reply_msg,
+                GObject *obj,
+                gpointer user_data)
 {
-  GabbleFileTransferChannel *self = (GabbleFileTransferChannel*)user_data;
-  TpBaseChannel *base = TP_BASE_CHANNEL (self);
-  TpBaseConnection *base_conn = tp_base_channel_get_connection (base);
-  GabbleConnection *conn = GABBLE_CONNECTION (base_conn);
-  WockyPorter *porter = wocky_session_get_porter (conn->session);
+  GabbleFileTransferChannel *self = GABBLE_FILE_TRANSFER_CHANNEL(obj);
 
-  GError *error = NULL;
-  WockyStanza *reply = wocky_porter_send_iq_finish (porter, result, &error);
-
-  WockyNode *topnode = wocky_stanza_get_top_node (reply);
+  WockyNode *topnode = wocky_stanza_get_top_node (reply_msg);
   WockyNode *slotnode = wocky_node_get_child (topnode, "slot");
 
   if (slotnode)
-  {
-    self->priv->http_upload_put = (gchar*)wocky_node_get_content_from_child (slotnode, "put");
-    self->priv->http_upload_get = (gchar*)wocky_node_get_content_from_child (slotnode, "get");
+    {
+      self->priv->http_upload_put = g_strdup (wocky_node_get_content_from_child (slotnode, "put"));
+      self->priv->http_upload_get = g_strdup (wocky_node_get_content_from_child (slotnode, "get"));
 
-    DEBUG ("got reply:\n%s\n%s\n", self->priv->http_upload_put, self->priv->http_upload_get);
+      DEBUG ("got reply:\n%s\n%s\n", self->priv->http_upload_put, self->priv->http_upload_get);
 
-    self->priv->data_buffer = malloc (self->priv->size);
-    self->priv->data_buffer_p = self->priv->data_buffer;
+      self->priv->data_buffer = malloc (self->priv->size);
+      self->priv->data_buffer_p = self->priv->data_buffer;
 
-    self->priv->httpupload = TRUE;
+      self->priv->httpupload = TRUE;
 
-    channel_open (self);
-  }
+      channel_open (self);
+    }
   else
     DEBUG ("No SLOT supplied, ERROR");
 }
@@ -1447,7 +1456,8 @@ offer_httpupload_file_transfer (GabbleFileTransferChannel *self,
   WockyPorter *porter = wocky_session_get_porter (conn->session);
 
   WockyStanza *msg = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_GET, wocky_porter_get_full_jid (porter), self->priv->httpupload_service->jid, NULL);
+      WOCKY_STANZA_SUB_TYPE_GET, wocky_porter_get_full_jid (porter),
+      self->priv->httpupload_service->jid, NULL);
 
   WockyNode *nodetop = wocky_stanza_get_top_node (msg);
   WockyNode *noderequest = wocky_node_add_child_ns (nodetop, "request", NS_HTTPUPLOAD);
@@ -1460,13 +1470,14 @@ offer_httpupload_file_transfer (GabbleFileTransferChannel *self,
   wocky_node_add_child_with_content (noderequest, "size", size_str);
   wocky_node_add_child_with_content (noderequest, "content-type", "image/jpeg");
 
-  wocky_porter_send_iq_async (porter,
-                              msg,
-                              NULL,
-                              httpupload_reply,
-                              self);
+  _gabble_connection_send_with_reply (conn,
+                                      msg,
+                                      httpupload_reply,
+                                      G_OBJECT(self),
+                                      self,
+                                      NULL);
 
-  self->priv->httpupload_receipient = g_strdup(full_jid);
+  self->priv->httpupload_receipient = g_strdup (full_jid);
 
   free (size_str);
 
@@ -1544,21 +1555,21 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
   if (presence == NULL)
     {
       if (self->priv->httpupload_service)
-      {
-        gchar *full_jid = gabble_peer_to_jid (conn,
-          tp_base_channel_get_target_handle (base), share_resource);
-        DEBUG ("httpupload service found: %s", self->priv->httpupload_service->jid);
-        result = offer_httpupload_file_transfer (self, full_jid, error);
-        return result;
-      }
+        {
+          gchar *full_jid = gabble_peer_to_jid (conn,
+            tp_base_channel_get_target_handle (base), share_resource);
+          DEBUG ("httpupload service found: %s", self->priv->httpupload_service->jid);
+          result = offer_httpupload_file_transfer (self, full_jid, error);
+          return result;
+        }
       else
-      {
-        DEBUG ("can't find contact's presence");
-        g_set_error (error, TP_ERROR, TP_ERROR_OFFLINE,
-            "can't find contact's presence");
+        {
+          DEBUG ("can't find contact's presence");
+          g_set_error (error, TP_ERROR, TP_ERROR_OFFLINE,
+              "can't find contact's presence");
 
-        return FALSE;
-      }
+          return FALSE;
+        }
     }
 
   if (self->priv->service_name != NULL || self->priv->metadata != NULL)
@@ -1619,7 +1630,6 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
   use_si = si;
 #endif
 
-
   if (use_si)
     {
       offer_bytestream (self, jid, si_resource);
@@ -1637,20 +1647,20 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
   else
     {
       if (self->priv->httpupload_service)
-      {
-        gchar *full_jid = gabble_peer_to_jid (conn,
-          tp_base_channel_get_target_handle (base), share_resource);
-        DEBUG ("httpupload service found: %s", self->priv->httpupload_service->jid);
-        result = offer_httpupload_file_transfer (self, full_jid, error);
-        g_free (full_jid);
-      }
+        {
+          gchar *full_jid = gabble_peer_to_jid (conn,
+              tp_base_channel_get_target_handle (base), share_resource);
+          DEBUG ("httpupload service found: %s", self->priv->httpupload_service->jid);
+          result = offer_httpupload_file_transfer (self, full_jid, error);
+          g_free (full_jid);
+        }
       else
-      {
-        DEBUG ("contact doesn't have file transfer capabilities");
-        g_set_error (error, TP_ERROR, TP_ERROR_NOT_CAPABLE,
-          "contact doesn't have file transfer capabilities");
-        result = FALSE;
-      }
+        {
+          DEBUG ("contact doesn't have file transfer capabilities");
+          g_set_error (error, TP_ERROR, TP_ERROR_NOT_CAPABLE,
+              "contact doesn't have file transfer capabilities");
+          result = FALSE;
+        }
     }
 
   return result;
@@ -2095,7 +2105,7 @@ transport_handler (GibberTransport *transport,
 #endif
   else if (self->priv->httpupload)
     {
-      memcpy(self->priv->data_buffer_p, data->data, data->length);
+      memcpy (self->priv->data_buffer_p, data->data, data->length);
       self->priv->data_buffer_p += data->length;
     }
 
