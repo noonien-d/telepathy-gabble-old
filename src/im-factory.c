@@ -457,14 +457,14 @@ get_channel_for_incoming_message (
  *
  * Pops unacked stanzas from the stream management queue and reports failed delivery.
  */
-static void gabble_im_factory_report_unacked(GabbleImFactory *self)
+static void gabble_im_factory_report_unacked (GabbleImFactory *self)
 {
   WockyStanza      *stanza = NULL;
   WockyC2SPorter   *porter = WOCKY_C2S_PORTER (gabble_connection_dup_porter (self->priv->conn));
 
   DEBUG ("Check for unacked stanzas");
 
-  while ((stanza = wocky_c2s_porter_pop_unacked_stanzas(porter)) != NULL)
+  while ((stanza = wocky_c2s_porter_pop_unacked_stanzas (porter)) != NULL)
   {
     const char* id = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza), "id");
     const char* to = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza), "to");
@@ -474,7 +474,7 @@ static void gabble_im_factory_report_unacked(GabbleImFactory *self)
       GabbleIMChannel *channel = get_channel_for_incoming_message (self, to, FALSE);
       if (channel != NULL)
       {
-		/* Found channel and report permanently failed delivery */
+        /* Found channel and report permanently failed delivery */
         _gabble_im_channel_report_delivery (channel,
             TP_CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 0, id, NULL,
             GABBLE_TEXT_CHANNEL_SEND_NO_ERROR, TP_DELIVERY_STATUS_PERMANENTLY_FAILED);
@@ -506,7 +506,7 @@ gabble_im_factory_close_all (GabbleImFactory *self)
     {
       WockyPorter *porter = gabble_connection_dup_porter (self->priv->conn);
 
-      gabble_im_factory_report_unacked(self);
+      gabble_im_factory_report_unacked (self);
 
       wocky_porter_unregister_handler (porter, self->priv->message_cb_id);
       self->priv->message_cb_id = 0;
