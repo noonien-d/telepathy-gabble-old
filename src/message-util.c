@@ -348,7 +348,10 @@ _tp_chat_state_from_message (WockyStanza *message)
  *              error node, or to %GABBLE_TEXT_CHANNEL_SEND_NO_ERROR otherwise.
  * @delivery_status: set to TemporarilyFailed if an <error type="wait"/> is
  *                   encountered, to PermanentlyFailed if any other <error/> is
- *                   encountered, and to Unknown otherwise.
+ *                   encountered and to the following values by chat markers.
+ *                      displayed -> TP_DELIVERY_STATUS_READ
+ *                      received -> TP_DELIVERY_STATUS_DELIVERED
+ * @delivery_token: set to the id of the message the delivery_status refers to.
  *
  * Parses an incoming <message> stanza, producing various bits of the message
  * as various out parameters.
@@ -365,10 +368,11 @@ gabble_message_util_parse_incoming_message (WockyStanza *message,
                                             const gchar **body_ret,
                                             gint *state,
                                             TpChannelTextSendError *send_error,
-                                            TpDeliveryStatus *delivery_status)
+                                            TpDeliveryStatus *delivery_status,
+                                            const gchar **delivery_token)
 {
   const gchar *type, *body;
-  WockyNode *node;
+  WockyNode *node, *chat_marker;
   WockyXmppErrorType error_type;
   GError *error = NULL;
 
@@ -494,6 +498,43 @@ gabble_message_util_parse_incoming_message (WockyStanza *message,
 
   /* Parse chat state if it exists. */
   *state = _tp_chat_state_from_message (message);
+
+  /* Parse chat markers */
+  chat_marker = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
+      "displayed", NS_CHAT_MARKERS);
+
+  if (chat_marker)
+    {
+      const gchar *displayed_id = wocky_node_get_attribute (chat_marker, "id");
+      if (displayed_id == NULL)
+        {
+          STANZA_DEBUG (message, "but *what* did you receive?!");
+        }
+      else
+        {
+          DEBUG ("Set delivery status to READ");
+          *delivery_status = TP_DELIVERY_STATUS_READ;
+          *delivery_token = displayed_id;
+        }
+    }
+
+  chat_marker = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
+      "received", NS_CHAT_MARKERS);
+
+  if (chat_marker)
+    {
+      const gchar *received_id = wocky_node_get_attribute (chat_marker, "id");
+      if (received_id == NULL)
+        {
+          STANZA_DEBUG (message, "but *what* did you receive?!");
+        }
+      else
+        {
+          DEBUG ("Set delivery status to DELIVERED");
+          *delivery_status = TP_DELIVERY_STATUS_DELIVERED;
+          *delivery_token = received_id;
+        }
+    }
 
   return TRUE;
 }

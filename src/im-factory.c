@@ -213,13 +213,14 @@ im_factory_message_cb (
   gint state;
   TpChannelTextSendError send_error;
   TpDeliveryStatus delivery_status;
+  const gchar *delivery_token;
   gboolean create_if_missing;
 
   if (!gabble_message_util_parse_incoming_message (message, &from, &stamp,
-        &msgtype, &id, &body, &state, &send_error, &delivery_status))
+        &msgtype, &id, &body, &state, &send_error, &delivery_status, &delivery_token))
     return TRUE;
 
-  if (body == NULL && state == -1)
+  if (body == NULL && state == -1 && delivery_status == TP_DELIVERY_STATUS_UNKNOWN)
     {
       return FALSE;
     }
@@ -266,6 +267,12 @@ im_factory_message_cb (
       _gabble_im_channel_state_receive (chan, (TpChannelChatState) state);
     }
 
+  if (delivery_status != TP_DELIVERY_STATUS_UNKNOWN)
+    {
+      DEBUG ("emit status for %s := %d", delivery_token, delivery_status);
+      gabble_im_channel_receive_receipt (chan, delivery_token, delivery_status);
+    }
+
   return TRUE;
 }
 
@@ -278,17 +285,12 @@ im_factory_receipt_cb (
     gpointer user_data)
 {
   GabbleImFactory *self = GABBLE_IM_FACTORY (user_data);
-  WockyNode *received, *displayed;
+  WockyNode *received;
   const gchar *from;
   GabbleIMChannel *channel;
 
   received = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
       "received", NS_RECEIPTS);
-
-  //try again with chat marker namespace
-  if (received == NULL)
-    received = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
-        "received", NS_CHAT_MARKERS);
 
   if (received)
     {
@@ -310,31 +312,6 @@ im_factory_receipt_cb (
       gabble_im_channel_receive_receipt (channel, received_id, TP_DELIVERY_STATUS_DELIVERED);
       return TRUE;
     }
-
-  displayed = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
-      "displayed", NS_CHAT_MARKERS);
-
-  if (displayed)
-    {
-      const gchar *displayed_id = wocky_node_get_attribute (displayed, "id");
-      if (displayed_id == NULL)
-        {
-          STANZA_DEBUG (message, "but *what* did you receive?!");
-          return TRUE;
-        }
-
-      from = wocky_stanza_get_from (message);
-      channel = get_channel_for_incoming_message (self, from, FALSE);
-      if (channel == NULL)
-        {
-          DEBUG ("no existing channel with '%s'; ignoring receipt", from);
-          return TRUE;
-        }
-
-      gabble_im_channel_receive_receipt (channel, displayed_id, TP_DELIVERY_STATUS_READ);
-      return TRUE;
-    }
-
   return FALSE;
 }
 

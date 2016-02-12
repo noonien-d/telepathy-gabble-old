@@ -774,7 +774,7 @@ muc_factory_message_cb (
   GabbleMucFactory *fac = GABBLE_MUC_FACTORY (user_data);
   GabbleMucFactoryPrivate *priv = fac->priv;
 
-  const gchar *from, *body, *id;
+  const gchar *from, *body, *id, *delivery_token;
   time_t stamp;
   TpChannelTextMessageType msgtype;
   gint state;
@@ -782,7 +782,7 @@ muc_factory_message_cb (
   TpDeliveryStatus delivery_status;
 
   if (!gabble_message_util_parse_incoming_message (message, &from, &stamp,
-        &msgtype, &id, &body, &state, &send_error, &delivery_status))
+        &msgtype, &id, &body, &state, &send_error, &delivery_status, &delivery_token))
     return TRUE;
 
   if (conn_olpc_process_activity_properties_message (priv->conn, message,

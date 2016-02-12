@@ -19,6 +19,7 @@ test1 (void)
   TpChannelTextMessageType type;
   TpChannelTextSendError send_error;
   TpDeliveryStatus delivery_status;
+  const gchar *delivery_token;
   const gchar *id;
   const gchar *body;
   gint state;
@@ -29,7 +30,7 @@ test1 (void)
         NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "foo@bar.com");
@@ -54,6 +55,7 @@ test2 (void)
   TpChannelTextMessageType type;
   TpChannelTextSendError send_error;
   TpDeliveryStatus delivery_status;
+  const gchar *delivery_token;
   const gchar *id;
   const gchar *body;
   gint state;
@@ -65,7 +67,7 @@ test2 (void)
         NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "foo@bar.com");
@@ -90,6 +92,7 @@ test3 (void)
   TpDeliveryStatus delivery_status;
   const gchar *id;
   const gchar *body;
+  const gchar *delivery_token;
   gint state;
 
   msg = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_CHAT,
@@ -99,7 +102,7 @@ test3 (void)
         NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "foo@bar.com");
@@ -124,6 +127,7 @@ test_error (void)
   TpDeliveryStatus delivery_status;
   const gchar *id;
   const gchar *body;
+  const gchar *delivery_token;
   gint state;
 
   msg = wocky_stanza_build (
@@ -134,7 +138,7 @@ test_error (void)
       NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "foo@bar.com");
@@ -159,6 +163,7 @@ test_another_error (void)
   TpChannelTextMessageType type;
   TpChannelTextSendError send_error;
   TpDeliveryStatus delivery_status;
+  const gchar *delivery_token;
   const gchar *id;
   const gchar *body;
   gint state;
@@ -179,7 +184,7 @@ test_another_error (void)
       NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "romeo@montague.net/garden");
@@ -205,6 +210,7 @@ test_yet_another_error (void)
   TpChannelTextMessageType type;
   TpChannelTextSendError send_error;
   TpDeliveryStatus delivery_status;
+  const gchar *delivery_token;
   const gchar *id;
   const gchar *body;
   gint state;
@@ -227,7 +233,7 @@ test_yet_another_error (void)
       NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "other@starfleet.us/Enterprise");
@@ -252,6 +258,7 @@ test_google_offline (void)
   TpDeliveryStatus delivery_status;
   const gchar *id;
   const gchar *body;
+  const gchar *delivery_token;
   gint state;
 
   msg = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
@@ -269,7 +276,7 @@ test_google_offline (void)
       NULL);
   ret = gabble_message_util_parse_incoming_message (
       msg, &from, &stamp, &type, &id, &body, &state, &send_error,
-      &delivery_status);
+      &delivery_status, &delivery_token);
   g_assert (ret);
   g_assert_cmpstr (id, ==, "a867c060-bd3f-4ecc-a38f-3e306af48e4c");
   g_assert_cmpstr (from, ==, "foo@bar.com");
