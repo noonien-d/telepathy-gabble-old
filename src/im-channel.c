@@ -378,16 +378,20 @@ _gabble_im_channel_send_message (GObject *object,
 
   if (stanza != NULL)
     {
+      TpMessageSendingFlags supportedflags = 0;
       if ((flags & TP_MESSAGE_SENDING_FLAG_REPORT_DELIVERY) &&
           receipts_conceivably_supported (self))
         {
           wocky_node_add_child_ns (wocky_stanza_get_top_node (stanza),
               "request", NS_RECEIPTS);
-          flags = TP_MESSAGE_SENDING_FLAG_REPORT_DELIVERY;
+          supportedflags |= TP_MESSAGE_SENDING_FLAG_REPORT_DELIVERY;
         }
-      else
+      if ((flags & TP_MESSAGE_SENDING_FLAG_REPORT_READ) &&
+          receipts_conceivably_supported (self))
         {
-          flags = 0;
+          wocky_node_add_child_ns (wocky_stanza_get_top_node (stanza),
+              "markable", NS_CHAT_MARKERS);
+          supportedflags |= TP_MESSAGE_SENDING_FLAG_REPORT_READ;
         }
 
       porter = gabble_connection_dup_porter (gabble_conn);
@@ -395,7 +399,7 @@ _gabble_im_channel_send_message (GObject *object,
       context->channel = g_object_ref (base);
       context->message = g_object_ref (message);
       context->token = id;
-      context->flags = flags;
+      context->flags = supportedflags;
       wocky_porter_send_async (porter, stanza, NULL,
           _gabble_im_channel_message_sent_cb, context);
       g_object_unref (porter);
@@ -626,11 +630,12 @@ _gabble_im_channel_state_receive (GabbleIMChannel *chan,
 void
 gabble_im_channel_receive_receipt (
     GabbleIMChannel *self,
-    const gchar *receipt_id)
+    const gchar *receipt_id,
+    TpDeliveryStatus status)
 {
   _gabble_im_channel_report_delivery (self,
         TP_CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, 0, receipt_id, NULL,
-        GABBLE_TEXT_CHANNEL_SEND_NO_ERROR, TP_DELIVERY_STATUS_DELIVERED);
+        GABBLE_TEXT_CHANNEL_SEND_NO_ERROR, status);
 }
 
 static void
