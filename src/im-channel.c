@@ -109,7 +109,7 @@ gabble_im_channel_init (GabbleIMChannel *self)
   self->priv = priv;
 }
 
-static void _im_channel_pending_messages_removed_cb ( TpSvcChannelInterfaceMessages *iface,
+static void _gabble_im_channel_pending_messages_removed_cb ( TpSvcChannelInterfaceMessages *iface,
                                 GArray *arg_Message_IDs,
                                 gpointer user_data)
 {
@@ -204,7 +204,7 @@ gabble_im_channel_constructed (GObject *obj)
 
   priv->pending_messages = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
 
-  g_signal_connect (obj, "pending-messages-removed", (GCallback)_im_channel_pending_messages_removed_cb, self);
+  g_signal_connect (obj, "pending-messages-removed", (GCallback)_gabble_im_channel_pending_messages_removed_cb, self);
 }
 
 static void gabble_im_channel_dispose (GObject *object);

@@ -372,7 +372,7 @@ gabble_message_util_parse_incoming_message (WockyStanza *message,
                                             const gchar **delivery_token)
 {
   const gchar *type, *body;
-  WockyNode *node, *chat_marker;
+  WockyNode *node;
   WockyXmppErrorType error_type;
   GError *error = NULL;
 
@@ -500,12 +500,12 @@ gabble_message_util_parse_incoming_message (WockyStanza *message,
   *state = _tp_chat_state_from_message (message);
 
   /* Parse chat markers */
-  chat_marker = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
       "displayed", NS_CHAT_MARKERS);
 
-  if (chat_marker)
+  if (node)
     {
-      const gchar *displayed_id = wocky_node_get_attribute (chat_marker, "id");
+      const gchar *displayed_id = wocky_node_get_attribute (node, "id");
       if (displayed_id == NULL)
         {
           STANZA_DEBUG (message, "but *what* did you receive?!");
@@ -518,12 +518,12 @@ gabble_message_util_parse_incoming_message (WockyStanza *message,
         }
     }
 
-  chat_marker = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (message),
       "received", NS_CHAT_MARKERS);
 
-  if (chat_marker)
+  if (node)
     {
-      const gchar *received_id = wocky_node_get_attribute (chat_marker, "id");
+      const gchar *received_id = wocky_node_get_attribute (node, "id");
       if (received_id == NULL)
         {
           STANZA_DEBUG (message, "but *what* did you receive?!");
