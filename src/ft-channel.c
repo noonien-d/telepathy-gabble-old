@@ -1384,7 +1384,7 @@ static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer
       //Show up in the senders im history
       //Totally breaks up the concept of separated text and ft channels
       imchannel = gabble_connection_get_imchannel_by_jid (conn,
-          self->priv->httpupload_receipient, FALSE);
+          self->priv->httpupload_receipient, TRUE);
 
       if (imchannel)
         {
