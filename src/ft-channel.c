@@ -1388,14 +1388,11 @@ static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer
 
       if (imchannel)
         {
-          _gabble_im_channel_receive (imchannel,
-              xmsg,
+          _gabble_im_channel_sent (imchannel,
               TP_CHANNEL_TEXT_MESSAGE_TYPE_NORMAL,
-              self->priv->httpupload_receipient,
-              time (NULL),
-              NULL,
-              self->priv->http_upload_get,
-              -1);
+              time(NULL),
+              id,
+              self->priv->http_upload_get);
         }
       g_free (id);
     }
