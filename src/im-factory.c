@@ -887,3 +887,11 @@ caps_channel_manager_iface_init (gpointer g_iface,
 
   iface->get_contact_caps = gabble_im_factory_get_contact_caps;
 }
+
+GabbleIMChannel *gabble_im_factory_get_channel_for_incoming_message (
+                    GabbleImFactory *self,
+                    const gchar *jid,
+                    gboolean create_if_missing)
+{
+  return get_channel_for_incoming_message (self, jid, create_if_missing);
+}
