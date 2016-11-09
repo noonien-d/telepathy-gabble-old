@@ -963,7 +963,7 @@ pep_avatar_request_data_cb (
   gchar *bindata;
   gsize outlen;
   GArray *arr;
-  
+
   g_slice_free (pep_request_ctx, ctx);
 
   g_assert (g_hash_table_lookup (conn->avatar_requests,
@@ -1004,14 +1004,14 @@ pep_avatar_request_data_cb (
       STANZA_DEBUG (msg, "No item in PEP reply");
       return;
     }
-    
+
   data_node = wocky_node_get_child (item_node, "data");
   if (data_node == NULL)
     {
       STANZA_DEBUG (msg, "No data in PEP reply");
       return;
     }
-    
+
   binval_value = data_node->content;
 
   if (NULL == binval_value)
@@ -1021,7 +1021,7 @@ pep_avatar_request_data_cb (
       return;
     }
 
-  bindata = (gchar*)g_base64_decode (binval_value, &outlen);
+  bindata = (gchar *) g_base64_decode (binval_value, &outlen);
 
   if (bindata == NULL)
     {
@@ -1035,27 +1035,27 @@ pep_avatar_request_data_cb (
   g_array_append_vals (arr, bindata, outlen);
   tp_svc_connection_interface_avatars_emit_avatar_retrieved (conn, handle,
       sha1, arr, mime_type);
-  
+
   g_array_unref (arr);
   g_free (bindata);
-  
+
   DEBUG ("retreived avatar from %d with size=%ld, sha1='%s'", handle, outlen, sha1);
-  
+
   // is this really needed?
   if (sha1)
     {
       GabblePresence *presence = gabble_presence_cache_get (conn->presence_cache, handle);
       if (presence)
-        {      
+        {
           DEBUG ("presence found");
 
           g_free (presence->avatar_sha1);
-          presence->avatar_sha1 = g_strdup(sha1);
+          presence->avatar_sha1 = g_strdup (sha1);
         }
       else
         DEBUG ("presence not found");
     }
-  
+
   g_free (sha1);
 }
 
@@ -1075,7 +1075,7 @@ pep_avatar_metadata_node_changed (WockyPepService *pep,
   const gchar *sha1;
 
   jid = wocky_bare_contact_get_jid (contact);
-  
+
   handle = tp_handle_ensure (contact_repo, jid, NULL, NULL);
   if (handle == 0)
     {
@@ -1089,50 +1089,50 @@ pep_avatar_metadata_node_changed (WockyPepService *pep,
       return;
     }
 
-  metadata = wocky_node_get_child_ns (item, "metadata", NS_AVATAR_METADATA); 
+  metadata = wocky_node_get_child_ns (item, "metadata", NS_AVATAR_METADATA);
   if (NULL == metadata)
     {
       STANZA_DEBUG (stanza, "PEP item without metadata node, ignoring");
       return;
     }
-    
+
   // FIXME: there may exist multiple child nodes
-  info = wocky_node_get_child (metadata, "info"); 
+  info = wocky_node_get_child (metadata, "info");
   if (NULL == info)
     {
       STANZA_DEBUG (stanza, "PEP metadata without info nodes, ignoring");
       return;
     }
-    
+
   sha1 = wocky_node_get_attribute (info, "id");
 
   if (handle == tp_base_connection_get_self_handle (base))
     update_own_avatar_sha1 (conn, sha1, NULL);
   else
     tp_svc_connection_interface_avatars_emit_avatar_updated (conn, handle, sha1);
-  
+
   DEBUG ("got pep avatar metadata update of '%s', sha1 = %s", jid, sha1);
 
-  g_hash_table_insert(conn->pep_avatar_hashes,  GINT_TO_POINTER(handle), g_strdup(sha1));
+  g_hash_table_insert (conn->pep_avatar_hashes,  GINT_TO_POINTER(handle), g_strdup (sha1));
 }
 
-static pep_request_ctx * 
+static pep_request_ctx *
 pep_avatar_request_data (GabbleConnection *conn, TpHandle handle)
 {
   TpBaseConnection *base = (TpBaseConnection *) conn;
   pep_request_ctx *ctx;
   WockyStanza *msg;
-  
+
   const gchar *jid = NULL;
-  
+
   TpHandleRepoIface *contact_repo = tp_base_connection_get_handles (
           base, TP_HANDLE_TYPE_CONTACT);
 
   jid = tp_handle_inspect (contact_repo, handle);
-  
+
   ctx = g_slice_new0 (pep_request_ctx);
   ctx->handle = handle;
-  
+
   msg = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
     NULL, jid,
     '(', "pubsub",
@@ -1142,11 +1142,11 @@ pep_avatar_request_data (GabbleConnection *conn, TpHandle handle)
       ')',
     ')',
     NULL);
-  
+
   gabble_request_pipeline_enqueue (conn->req_pipeline,
                   msg, 0, pep_avatar_request_data_cb, ctx);
   g_object_unref (msg);
-  
+
   return ctx;
 }
 
@@ -1165,7 +1165,7 @@ conn_avatars_init (GabbleConnection *conn)
           conn_avatars_fill_contact_attributes);
 
   conn->pep_avatar = wocky_pep_service_new (NS_AVATAR_METADATA, TRUE);
-  conn->pep_avatar_hashes = g_hash_table_new(g_direct_hash, g_direct_equal);
+  conn->pep_avatar_hashes = g_hash_table_new (g_direct_hash, g_direct_equal);
 
   g_signal_connect (conn->pep_avatar, "changed",
       G_CALLBACK (pep_avatar_metadata_node_changed), conn);
