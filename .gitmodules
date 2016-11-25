@@ -1,3 +1,4 @@
 [submodule "lib/ext/wocky"]
 	path = lib/ext/wocky
-	url = git://anongit.freedesktop.org/wocky
+	url = https://github.com/noonien-d/wocky.git
+	branch = 0.18_XEP-0198_Stream_Management
