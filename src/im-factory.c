@@ -490,6 +490,12 @@ static void gabble_im_factory_report_unacked (GabbleImFactory *self)
 static void
 gabble_im_factory_close_all (GabbleImFactory *self)
 {
+  // Do this before clearing the channels
+  if (self->priv->message_cb_id != 0)
+    {
+      gabble_im_factory_report_unacked (self);
+    }
+  
   /* Use a temporary variable (the macro does this) because we don't want
    * im_channel_closed_cb to remove the channel from the hash table a
    * second time */
@@ -505,8 +511,6 @@ gabble_im_factory_close_all (GabbleImFactory *self)
   if (self->priv->message_cb_id != 0)
     {
       WockyPorter *porter = gabble_connection_dup_porter (self->priv->conn);
-
-      gabble_im_factory_report_unacked (self);
 
       wocky_porter_unregister_handler (porter, self->priv->message_cb_id);
       self->priv->message_cb_id = 0;
