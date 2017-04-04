@@ -177,6 +177,7 @@ enum
     PROP_EXTRA_CERTIFICATE_IDENTITIES,
     PROP_POWER_SAVING,
     PROP_DOWNLOAD_AT_CONNECTION,
+    PROP_FORCE_HTTPUPLOAD,
 
     LAST_PROPERTY
 };
@@ -228,6 +229,8 @@ struct _GabbleConnectionPrivate
   GStrv extra_certificate_identities;
 
   gboolean power_saving;
+
+  gboolean force_httpupload;
 
   /* authentication properties */
   gchar *stream_server;
@@ -686,6 +689,10 @@ gabble_connection_get_property (GObject    *object,
         break;
       }
 
+    case PROP_FORCE_HTTPUPLOAD:
+      g_value_set_boolean (value, priv->force_httpupload);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -831,6 +838,10 @@ gabble_connection_set_property (GObject      *object,
       if (self->roster != NULL)
         g_object_set (self->roster, "download-at-connection",
             g_value_get_boolean (value), NULL);
+      break;
+
+    case PROP_FORCE_HTTPUPLOAD:
+      priv->force_httpupload = g_value_get_boolean (value);
       break;
 
     default:
@@ -1237,6 +1248,14 @@ gabble_connection_class_init (GabbleConnectionClass *gabble_connection_class)
       g_param_spec_boolean (
           "power-saving", "Power saving active?",
           "Queue remote presence updates server-side for less network chatter",
+          FALSE,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (
+      object_class, PROP_FORCE_HTTPUPLOAD,
+      g_param_spec_boolean (
+          "force-httpupload", "Prefer httpupload?",
+          "Prefer httpupload to si-filetransfer, if available",
           FALSE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
