@@ -196,6 +196,9 @@ static TpCMParamSpec jabber_params[] = {
     TP_CONN_MGR_PARAM_FLAG_HAS_DEFAULT, GINT_TO_POINTER(FALSE),
     0 /* unused */, NULL, NULL },
 
+  { "force-httpupload", DBUS_TYPE_BOOLEAN_AS_STRING, G_TYPE_BOOLEAN,
+    0, NULL, 0 /* unused */, NULL, NULL },
+
   { NULL, NULL, 0, 0, NULL, 0 }
 };
 
@@ -280,6 +283,7 @@ struct ParamMapping {
   SAME ("send-chat-markers"),
   SAME ("force-chat-markers"),
   SAME ("force-receipts"),
+  SAME ("force-httpupload"),
   SAME (NULL)
 };
 #undef SAME

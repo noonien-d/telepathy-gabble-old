@@ -1548,6 +1548,7 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
   gboolean jingle_share = FALSE;
   const gchar *share_resource = NULL;
 #endif
+  gboolean force_httpupload;
 
   g_assert (!tp_str_empty (self->priv->filename));
   g_assert (self->priv->size != GABBLE_UNDEFINED_FILE_SIZE);
@@ -1558,6 +1559,7 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
 
   self->priv->httpupload_service = gabble_disco_service_find (conn->disco,
                             NULL, NULL, NS_HTTPUPLOAD);
+  g_object_get (conn, "force-httpupload", &force_httpupload, NULL);
 
   presence = gabble_presence_cache_get (conn->presence_cache,
       tp_base_channel_get_target_handle (base));
@@ -1639,6 +1641,14 @@ gabble_file_transfer_channel_offer_file (GabbleFileTransferChannel *self,
 #else
   use_si = si;
 #endif
+
+  if ((self->priv->httpupload_service) && (force_httpupload))
+    {
+      use_si = FALSE;
+#ifdef ENABLE_JINGLE_FILE_TRANSFER
+      jingle_share  = FALSE;
+#endif
+    }
 
   if (use_si)
     {
