@@ -1364,10 +1364,13 @@ static void httpupload_sent_cb (SoupSession *session, SoupMessage *msg, gpointer
           self->priv->httpupload_receipient, NULL);
 
       WockyNode *nodetop = wocky_stanza_get_top_node (xmsg);
+      WockyNode *nodex;
 
       gchar *id = gabble_generate_id ();
       wocky_node_set_attribute (nodetop, "id", id);
       wocky_node_add_child_with_content (nodetop, "body", self->priv->http_upload_get);
+      nodex = wocky_node_add_child_ns (nodetop, "x", NS_XOOB);
+      wocky_node_add_child_with_content (nodex, "url", self->priv->http_upload_get);
 
       DEBUG("send message to '%s'", self->priv->httpupload_receipient);
 
